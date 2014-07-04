@@ -31,10 +31,12 @@ import (
 )
 
 var (
-	port   = kingpin.Flag("port", "Port to listen on.").Default("8000").Int()
-	cache  = kingpin.Flag("cache", "Time in seconds to cache instance lookip.").Default("60").Int()
-	tags   = kingpin.Arg("tag", "Key value pair of tags to match EC2 instances.").Strings()
-	region aws.Region
+	port            = kingpin.Flag("port", "Port to listen on.").Default("8000").Int()
+	cache           = kingpin.Flag("cache", "Time in seconds to cache instance IP lookup.").Default("60").Int()
+	tags            = kingpin.Arg("tag", "Key:value pair of tags to match EC2 instances.").Strings()
+	region          aws.Region
+	ResetAfter      time.Time
+	TaggedInstances = []string{}
 )
 
 func init() {
@@ -80,8 +82,14 @@ func requestHandler(w http.ResponseWriter, r *http.Request, ec2region *ec2.EC2) 
 		return
 	}
 
-	// lookup instances private IPs
-	privateIPs := getPrivateIPs(ec2region)
+	privateIPs := TaggedInstances
+	// Check instance cache
+	if time.Now().After(ResetAfter) {
+		privateIPs = getPrivateIPs(ec2region)
+		ResetAfter = time.Now().Add(time.Duration(*cache*1000) * time.Millisecond)
+		TaggedInstances = privateIPs
+	}
+
 	log.Printf("Sending PURGE to: %+v", privateIPs)
 	// start gorountine for each server
 	responseChannel := make(chan int)
