@@ -19,3 +19,10 @@ Authentication
 --------------
 
 AWS access key and secret key can be added as environment variables, using either `AWS_ACCESS_KEY_ID` or `AWS_ACCESS_KEY` and `AWS_SECRET_ACCESS_KEY` or `AWS_SECRET_KEY`.  If these are not available then IAM credentials for the instance will be checked.
+
+Building
+--------
+
+Build a binary by running:
+
+`go build varnish-purge-proxy.go`
