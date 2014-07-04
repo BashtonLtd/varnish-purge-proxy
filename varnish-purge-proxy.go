@@ -26,14 +26,15 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
 var (
-	port     = kingpin.Flag("port", "Port to listen on.").Default("8000").Int()
-	tagkey   = kingpin.Flag("tagkey", "Tag key to match EC2 instances.").Required().String()
-	tagvalue = kingpin.Flag("tagvalue", "Tag value to match EC2 instances.").Required().String()
-	region   aws.Region
+	port   = kingpin.Flag("port", "Port to listen on.").Default("8000").Int()
+	cache  = kingpin.Flag("cache", "Time in seconds to cache instance lookip.").Default("60").Int()
+	tags   = kingpin.Arg("tag", "Key value pair of tags to match EC2 instances.").Strings()
+	region aws.Region
 )
 
 func init() {
@@ -44,10 +45,16 @@ func init() {
 func main() {
 	kingpin.Parse()
 
+	if len(*tags) == 0 {
+		fmt.Println("No tags specified")
+		return
+	}
+
 	// Set up access to ec2
 	auth, err := aws.GetAuth("", "", "", time.Now().Add(time.Duration(1*time.Hour)))
 	if err != nil {
-		log.Println(err)
+		fmt.Println(err)
+		return
 	}
 	ec2region := ec2.New(auth, region)
 
@@ -114,7 +121,16 @@ ENDREQUEST:
 
 func getPrivateIPs(ec2region *ec2.EC2) []string {
 	filter := ec2.NewFilter()
-	filter.Add(fmt.Sprintf("tag:%v", *tagkey), *tagvalue)
+
+	for _, tag := range *tags {
+		parts := strings.SplitN(tag, ":", 2)
+		if len(parts) != 2 {
+			log.Println("expected HEADER:VALUE got", tag)
+			break
+		}
+		filter.Add(fmt.Sprintf("tag:%v", parts[0]), parts[1])
+	}
+
 	taggedInstances := []string{}
 
 	resp, err := ec2region.DescribeInstances(nil, filter)
