@@ -20,7 +20,7 @@ export PATH
 
 name=varnish-purge-proxy
 program=/usr/bin/varnish-purge-proxy
-args='--tagkey Service --tagvalue varnish'
+args='Service:varnish'
 pidfile="/var/run/$name.pid"
 
 [ -r /etc/default/$name ] && . /etc/default/$name
