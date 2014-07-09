@@ -45,7 +45,7 @@ func init() {
 }
 
 func main() {
-	kingpin.Version("1.1.2")
+	kingpin.Version("1.1.3")
 	kingpin.Parse()
 
 	if len(*tags) == 0 {
@@ -94,8 +94,9 @@ func requestHandler(w http.ResponseWriter, r *http.Request, ec2region *ec2.EC2) 
 	log.Printf("Sending PURGE to: %+v", privateIPs)
 	// start gorountine for each server
 	responseChannel := make(chan int)
+	requesturl := fmt.Sprintf("%v", r.URL)
 	for _, ip := range privateIPs {
-		go forwardRequest(r, ip, responseChannel)
+		go forwardRequest(r, ip, requesturl, responseChannel)
 	}
 
 	// gather responses from all requests
@@ -156,12 +157,12 @@ func getPrivateIPs(ec2region *ec2.EC2) []string {
 	return taggedInstances
 }
 
-func forwardRequest(r *http.Request, ip string, responseChannel chan int) {
+func forwardRequest(r *http.Request, ip string, requesturl string, responseChannel chan int) {
 	client := &http.Client{}
 	r.Host = ip
 	r.RequestURI = ""
 
-	newURL, err := url.Parse(fmt.Sprintf("http://%v%v", ip, r.URL))
+	newURL, err := url.Parse(fmt.Sprintf("http://%v%v", ip, requesturl))
 	if err != nil {
 		log.Println(err)
 		responseChannel <- 500
