@@ -134,7 +134,7 @@ func getPrivateIPs(ec2region *ec2.EC2) []string {
 	for _, tag := range *tags {
 		parts := strings.SplitN(tag, ":", 2)
 		if len(parts) != 2 {
-			log.Println("expected HEADER:VALUE got", tag)
+			log.Println("expected TAG:VALUE got", tag)
 			break
 		}
 		filter.Add(fmt.Sprintf("tag:%v", parts[0]), parts[1])
