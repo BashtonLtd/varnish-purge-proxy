@@ -45,7 +45,7 @@ func init() {
 }
 
 func main() {
-	kingpin.Version("1.1.3")
+	kingpin.Version("1.1.4")
 	kingpin.Parse()
 
 	if len(*tags) == 0 {
