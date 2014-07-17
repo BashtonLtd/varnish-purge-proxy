@@ -166,12 +166,14 @@ func forwardRequest(r *http.Request, ip string, requesturl string, responseChann
 	if err != nil {
 		log.Println(err)
 		responseChannel <- 500
+		return
 	}
 	r.URL = newURL
 	response, err := client.Do(r)
 	if err != nil {
 		log.Println(err)
 		responseChannel <- 500
+		return
 	}
 	responseChannel <- response.StatusCode
 }
