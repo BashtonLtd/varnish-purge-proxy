@@ -46,10 +46,10 @@ func init() {
 }
 
 func main() {
-	kingpin.Version("1.1.6")
+	kingpin.Version("1.1.7")
 	kingpin.Parse()
 
-	sl, err := syslog.New(syslog.LOG_NOTICE, "[varnish-purge-proxy]")
+	sl, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_LOCAL0, "[varnish-purge-proxy]")
 	defer sl.Close()
 	if err != nil {
 		log.Println("Error writing to syslog")
@@ -168,7 +168,6 @@ func getPrivateIPs(ec2region *ec2.EC2) []string {
 }
 
 func forwardRequest(r *http.Request, ip string, client http.Client, requesturl string, responseChannel chan int) {
-	//client := &http.Client{}
 	r.Host = ip
 	r.RequestURI = ""
 
@@ -185,7 +184,6 @@ func forwardRequest(r *http.Request, ip string, client http.Client, requesturl s
 		responseChannel <- 500
 		return
 	}
-	log.Println(response)
 	responseChannel <- response.StatusCode
 	return
 }
