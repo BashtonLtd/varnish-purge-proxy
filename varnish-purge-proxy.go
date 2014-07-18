@@ -46,7 +46,7 @@ func init() {
 }
 
 func main() {
-	kingpin.Version("1.1.5")
+	kingpin.Version("1.1.6")
 	kingpin.Parse()
 
 	sl, err := syslog.New(syslog.LOG_NOTICE, "[varnish-purge-proxy]")
@@ -76,8 +76,9 @@ func main() {
 }
 
 func serveHTTP(port int, ec2region *ec2.EC2) {
+	client := &http.Client{}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		requestHandler(w, r, ec2region)
+		requestHandler(w, r, client, ec2region)
 	})
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	log.Println("Listening for requests at", addr)
@@ -85,7 +86,7 @@ func serveHTTP(port int, ec2region *ec2.EC2) {
 	log.Println(err.Error())
 }
 
-func requestHandler(w http.ResponseWriter, r *http.Request, ec2region *ec2.EC2) {
+func requestHandler(w http.ResponseWriter, r *http.Request, client *http.Client, ec2region *ec2.EC2) {
 	// check that request is PURGE and has X-Purge-Regex header set
 	if _, exists := r.Header["X-Purge-Regex"]; !exists || r.Method != "PURGE" {
 		http.Error(w, http.StatusText(400), 400)
@@ -105,7 +106,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request, ec2region *ec2.EC2) 
 	responseChannel := make(chan int)
 	requesturl := fmt.Sprintf("%v", r.URL)
 	for _, ip := range privateIPs {
-		go forwardRequest(r, ip, requesturl, responseChannel)
+		go forwardRequest(r, ip, *client, requesturl, responseChannel)
 	}
 
 	// gather responses from all requests
@@ -166,8 +167,8 @@ func getPrivateIPs(ec2region *ec2.EC2) []string {
 	return taggedInstances
 }
 
-func forwardRequest(r *http.Request, ip string, requesturl string, responseChannel chan int) {
-	client := &http.Client{}
+func forwardRequest(r *http.Request, ip string, client http.Client, requesturl string, responseChannel chan int) {
+	//client := &http.Client{}
 	r.Host = ip
 	r.RequestURI = ""
 
@@ -184,5 +185,7 @@ func forwardRequest(r *http.Request, ip string, requesturl string, responseChann
 		responseChannel <- 500
 		return
 	}
+	log.Println(response)
 	responseChannel <- response.StatusCode
+	return
 }
