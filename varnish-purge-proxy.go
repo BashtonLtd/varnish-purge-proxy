@@ -46,7 +46,7 @@ func init() {
 }
 
 func main() {
-	kingpin.Version("1.1.7")
+	kingpin.Version("1.1.8")
 	kingpin.Parse()
 
 	sl, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_LOCAL0, "[varnish-purge-proxy]")
@@ -54,6 +54,7 @@ func main() {
 	if err != nil {
 		log.Println("Error writing to syslog")
 	} else {
+		log.SetFlags(0)
 		log.SetOutput(sl)
 	}
 
