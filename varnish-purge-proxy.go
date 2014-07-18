@@ -24,6 +24,7 @@ import (
 	"github.com/crowdmob/goamz/ec2"
 	"gopkg.in/alecthomas/kingpin.v1"
 	"log"
+	"log/syslog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -45,8 +46,16 @@ func init() {
 }
 
 func main() {
-	kingpin.Version("1.1.4")
+	kingpin.Version("1.1.5")
 	kingpin.Parse()
+
+	sl, err := syslog.New(syslog.LOG_NOTICE, "[varnish-purge-proxy]")
+	defer sl.Close()
+	if err != nil {
+		log.Println("Error writing to syslog")
+	} else {
+		log.SetOutput(sl)
+	}
 
 	if len(*tags) == 0 {
 		fmt.Println("No tags specified")
@@ -54,9 +63,9 @@ func main() {
 	}
 
 	// Set up access to ec2
-	auth, err := aws.GetAuth("", "", "", time.Now().Add(time.Duration(1*time.Hour)))
+	auth, err := aws.GetAuth("", "", "", time.Now().Add(time.Duration(24*365*time.Hour)))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	ec2region := ec2.New(auth, region)
