@@ -78,12 +78,20 @@ func main() {
 
 func serveHTTP(port int, ec2region *ec2.EC2) {
 	client := &http.Client{}
+
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	server := &http.Server{
+		Addr:           addr,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		requestHandler(w, r, client, ec2region)
 	})
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	log.Println("Listening for requests at", addr)
-	err := http.ListenAndServe(addr, nil)
+	err := server.ListenAndServe()
 	log.Println(err.Error())
 }
 
