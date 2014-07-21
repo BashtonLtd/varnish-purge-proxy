@@ -25,6 +25,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v1"
 	"log"
 	"log/syslog"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -40,13 +41,18 @@ var (
 	TaggedInstances = []string{}
 )
 
+type Config struct {
+	ConnectTimeout   time.Duration
+	ReadWriteTimeout time.Duration
+}
+
 func init() {
 	regionname := aws.InstanceRegion()
 	region = aws.Regions[regionname]
 }
 
 func main() {
-	kingpin.Version("1.2.0")
+	kingpin.Version("1.2.1")
 	kingpin.Parse()
 
 	sl, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_LOCAL0, "[varnish-purge-proxy]")
@@ -76,8 +82,46 @@ func main() {
 	select {}
 }
 
+func timeoutDialer(config *Config) func(net, addr string) (c net.Conn, err error) {
+	return func(netw, addr string) (net.Conn, error) {
+		conn, err := net.DialTimeout(netw, addr, config.ConnectTimeout)
+		if err != nil {
+			return nil, err
+		}
+		conn.SetDeadline(time.Now().Add(config.ReadWriteTimeout))
+		return conn, nil
+	}
+}
+
+func newTimeoutClient(args ...interface{}) *http.Client {
+	// Default configuration
+	config := &Config{
+		ConnectTimeout:   5 * time.Second,
+		ReadWriteTimeout: 5 * time.Second,
+	}
+
+	// merge the default with user input if there is one
+	if len(args) == 1 {
+		timeout := args[0].(time.Duration)
+		config.ConnectTimeout = timeout
+		config.ReadWriteTimeout = timeout
+	}
+
+	if len(args) == 2 {
+		config.ConnectTimeout = args[0].(time.Duration)
+		config.ReadWriteTimeout = args[1].(time.Duration)
+	}
+
+	return &http.Client{
+		Transport: &http.Transport{
+			Dial: timeoutDialer(config),
+		},
+	}
+}
+
 func serveHTTP(port int, ec2region *ec2.EC2) {
-	client := &http.Client{}
+	//client := &http.Client{}
+	client := newTimeoutClient()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +131,7 @@ func serveHTTP(port int, ec2region *ec2.EC2) {
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	server := &http.Server{
 		Addr:           addr,
-		Handler: 		mux,
+		Handler:        mux,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
@@ -132,7 +176,6 @@ ENDREQUEST:
 			responsesReceived++
 			if response == 500 {
 				return500 = true
-				break ENDREQUEST
 			}
 			if responsesReceived == len(privateIPs) {
 				break ENDREQUEST
@@ -196,6 +239,7 @@ func forwardRequest(r *http.Request, ip string, client http.Client, requesturl s
 		responseChannel <- 500
 		return
 	}
+	defer response.Body.Close()
 	responseChannel <- response.StatusCode
 	return
 }
