@@ -46,7 +46,7 @@ func init() {
 }
 
 func main() {
-	kingpin.Version("1.1.9")
+	kingpin.Version("1.2.0")
 	kingpin.Parse()
 
 	sl, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_LOCAL0, "[varnish-purge-proxy]")
@@ -79,17 +79,20 @@ func main() {
 func serveHTTP(port int, ec2region *ec2.EC2) {
 	client := &http.Client{}
 
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		requestHandler(w, r, client, ec2region)
+	})
+
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	server := &http.Server{
 		Addr:           addr,
+		Handler: 		mux,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		requestHandler(w, r, client, ec2region)
-	})
 	log.Println("Listening for requests at", addr)
 	err := server.ListenAndServe()
 	log.Println(err.Error())
