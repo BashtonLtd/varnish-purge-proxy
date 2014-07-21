@@ -120,7 +120,6 @@ func newTimeoutClient(args ...interface{}) *http.Client {
 }
 
 func serveHTTP(port int, ec2region *ec2.EC2) {
-	//client := &http.Client{}
 	client := newTimeoutClient()
 
 	mux := http.NewServeMux()
