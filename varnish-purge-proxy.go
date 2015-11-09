@@ -35,6 +35,7 @@ import (
 var (
 	port            = kingpin.Flag("port", "Port to listen on.").Default("8000").Int()
 	cache           = kingpin.Flag("cache", "Time in seconds to cache instance IP lookup.").Default("60").Int()
+        destport        = kingpin.Flag("destport", "The destination port of the varnish server to target.").Default("80").Int()
 	tags            = kingpin.Arg("tag", "Key:value pair of tags to match EC2 instances.").Strings()
 	region          aws.Region
 	ResetAfter      time.Time
@@ -52,7 +53,7 @@ func init() {
 }
 
 func main() {
-	kingpin.Version("1.2.1")
+	kingpin.Version("1.2.2")
 	kingpin.Parse()
 
 	sl, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_LOCAL0, "[varnish-purge-proxy]")
@@ -225,7 +226,7 @@ func forwardRequest(r *http.Request, ip string, client http.Client, requesturl s
 	r.Host = ip
 	r.RequestURI = ""
 
-	newURL, err := url.Parse(fmt.Sprintf("http://%v%v", ip, requesturl))
+	newURL, err := url.Parse(fmt.Sprintf("http://%v:%v%v", ip, destport, requesturl))
 	if err != nil {
 		log.Println(err)
 		responseChannel <- 500
