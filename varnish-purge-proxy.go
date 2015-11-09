@@ -1,4 +1,4 @@
-package main
+package main // import "github.com/madedotcom/varnish-purge-proxy"
 
 /*
  * varnish-purge-proxy
@@ -35,6 +35,7 @@ import (
 var (
 	port            = kingpin.Flag("port", "Port to listen on.").Default("8000").Int()
 	cache           = kingpin.Flag("cache", "Time in seconds to cache instance IP lookup.").Default("60").Int()
+    host            = kingpin.Flag("host", "host address to listen on, defaults to 127.0.0.1").Default("127.0.0.1").String()
 	tags            = kingpin.Arg("tag", "Key:value pair of tags to match EC2 instances.").Strings()
 	region          aws.Region
 	ResetAfter      time.Time
@@ -77,7 +78,7 @@ func main() {
 	}
 	ec2region := ec2.New(auth, region)
 
-	go serveHTTP(*port, ec2region)
+	go serveHTTP(*port, *host, ec2region)
 
 	select {}
 }
@@ -119,7 +120,7 @@ func newTimeoutClient(args ...interface{}) *http.Client {
 	}
 }
 
-func serveHTTP(port int, ec2region *ec2.EC2) {
+func serveHTTP(port int, host string, ec2region *ec2.EC2) {
 	client := newTimeoutClient()
 
 	mux := http.NewServeMux()
@@ -127,7 +128,7 @@ func serveHTTP(port int, ec2region *ec2.EC2) {
 		requestHandler(w, r, client, ec2region)
 	})
 
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	addr := fmt.Sprintf("%v:%d", host, port)
 	server := &http.Server{
 		Addr:           addr,
 		Handler:        mux,
