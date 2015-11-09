@@ -11,6 +11,10 @@ You can also specify listen port:
 
 `./varnish-purge-proxy --port=8000`
 
+You can also specify the destination port to target:
+
+`./varnish-purge-proxy --destport=6081 
+
 varnish-purge-proxy will cache the IP lookup for 60 seconds, you can change this as follows:
 
 `./varnish-purge-proxy --cache=120`
