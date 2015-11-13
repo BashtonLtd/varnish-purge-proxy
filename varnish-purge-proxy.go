@@ -35,7 +35,7 @@ import (
 var (
 	port            = kingpin.Flag("port", "Port to listen on.").Default("8000").Int()
 	cache           = kingpin.Flag("cache", "Time in seconds to cache instance IP lookup.").Default("60").Int()
-    host            = kingpin.Flag("host", "host address to listen on, defaults to 127.0.0.1").Default("127.0.0.1").String()
+    listen          = kingpin.Flag("listen", "host address to listen on, defaults to 127.0.0.1").Default("127.0.0.1").String()
 	tags            = kingpin.Arg("tag", "Key:value pair of tags to match EC2 instances.").Strings()
 	region          aws.Region
 	ResetAfter      time.Time
@@ -78,7 +78,7 @@ func main() {
 	}
 	ec2region := ec2.New(auth, region)
 
-	go serveHTTP(*port, *host, ec2region)
+	go serveHTTP(*port, *listen, ec2region)
 
 	select {}
 }

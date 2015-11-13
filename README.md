@@ -28,6 +28,10 @@ Build a binary by running:
 `go build varnish-purge-proxy.go`
 
 
+Build adocker image container by running:
+
+`./make-container-image.sh [name of image]`
+
 Running in Docker
 ----------------
 
