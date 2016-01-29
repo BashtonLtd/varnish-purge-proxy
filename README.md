@@ -1,6 +1,8 @@
 varnish-purge-proxy
 ===================
 
+[![Build Status](https://travis-ci.org/BashtonLtd/varnish-purge-proxy.svg?branch=master)](https://travis-ci.org/BashtonLtd/varnish-purge-proxy)
+
 Proxy purge requests to multiple varnish servers
 
 Specify tags to limit instances that receive the purge request, multiple tags can be used. You must specify at least one tag.
