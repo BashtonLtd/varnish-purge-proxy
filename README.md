@@ -7,9 +7,13 @@ Specify tags to limit instances that receive the purge request, multiple tags ca
 
 `./varnish-purge-proxy Service:varnish Environment:live`
 
-You can also specify listen port:
+You can also specify host and port to listen on:
 
-`./varnish-purge-proxy --port=8000`
+`./varnish-purge-proxy --listen=127.0.0.1 --port=8000`
+
+You can also specify the destination port to target:
+
+`./varnish-purge-proxy --destport=6081`
 
 varnish-purge-proxy will cache the IP lookup for 60 seconds, you can change this as follows:
 
