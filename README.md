@@ -24,7 +24,7 @@ varnish-purge-proxy will cache the IP lookup for 60 seconds, you can change this
 Authentication
 --------------
 
-AWS access key and secret key can be added as environment variables, using either `AWS_ACCESS_KEY_ID` or `AWS_ACCESS_KEY` and `AWS_SECRET_ACCESS_KEY` or `AWS_SECRET_KEY`.  If these are not available then IAM credentials for the instance will be checked.
+AWS access key and secret key can be added as environment variables, using either `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY`.  If these are not available then IAM credentials for the instance will be checked.
 
 Building
 --------

@@ -9,8 +9,6 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
-
-	//mock
 )
 
 func expect(t *testing.T, a interface{}, b interface{}) {
