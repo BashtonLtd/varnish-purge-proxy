@@ -41,7 +41,7 @@ var (
 	destport        = kingpin.Flag("destport", "The destination port of the varnish server to target.").Default("80").Int()
 	listen          = kingpin.Flag("listen", "host address to listen on, defaults to 127.0.0.1").Default("127.0.0.1").String()
 	tags            = kingpin.Arg("tag", "Key:value pair of tags to match EC2 instances.").Strings()
-	region          *string
+	region          string
 	resetAfter      time.Time
 	taggedInstances = []string{}
 )
@@ -69,13 +69,13 @@ func main() {
 		return
 	}
 
-	*region, err = ec2metadata.New(session.New()).Region()
+	region, err = ec2metadata.New(session.New()).Region()
 	if err != nil {
 		log.Printf("Unable to retrieve the region from the EC2 instance %v\n", err)
 	}
 
 	// Set up access to ec2
-	svc := ec2.New(session.New(), &aws.Config{Region: region})
+	svc := ec2.New(session.New(), &aws.Config{Region: &region})
 
 	go serveHTTP(*port, *listen, svc)
 
