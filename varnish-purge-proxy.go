@@ -209,7 +209,10 @@ func getPrivateIPs(ec2region *ec2.EC2) []string {
 
 	for _, reservation := range result.Reservations {
 		for _, instance := range reservation.Instances {
-			instances = append(instances, *instance.PrivateIpAddress)
+			if instance.PrivateIpAddress != nil {
+				log.Println(*instance.PrivateIpAddress)
+				instances = append(instances, *instance.PrivateIpAddress)
+			}
 		}
 	}
 
@@ -224,8 +227,9 @@ func buildFilter(tags []string) ([]*ec2.Filter, error) {
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("expected TAG:VALUE got %s", tag)
 		}
+		tagName := fmt.Sprintf("tag:%s", *aws.String(parts[0]))
 		filters = append(filters, &ec2.Filter{
-			Name:   aws.String(parts[0]),
+			Name:   &tagName,
 			Values: []*string{aws.String(parts[1])},
 		})
 	}
@@ -233,11 +237,11 @@ func buildFilter(tags []string) ([]*ec2.Filter, error) {
 
 }
 
-func forwardRequest(r *http.Request, ip string, port int, client http.Client, requesturl string, responseChannel chan int) {
+func forwardRequest(r *http.Request, ip string, destport int, client http.Client, requesturl string, responseChannel chan int) {
 	r.Host = ip
 	r.RequestURI = ""
 
-	newURL, err := url.Parse(fmt.Sprintf("http://%v:%d%v", ip, port, requesturl))
+	newURL, err := url.Parse(fmt.Sprintf("http://%v:%d%v", ip, destport, requesturl))
 	if err != nil {
 		responseChannel <- 500
 		return

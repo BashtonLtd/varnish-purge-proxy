@@ -95,10 +95,10 @@ func TestBuildFilter(t *testing.T) {
 	testTags := []string{"machinetype:varnish", "env:stage"}
 	filter, err := buildFilter(testTags)
 	expect(t, err, nil)
-	expect(t, *filter[0].Name, "machinetype")
+	expect(t, *filter[0].Name, "tag:machinetype")
 	value0 := filter[0].Values[0]
 	expect(t, *value0, "varnish")
-	expect(t, *filter[1].Name, "env")
+	expect(t, *filter[1].Name, "tag:env")
 	value1 := filter[1].Values[0]
 	expect(t, *value1, "stage")
 }
