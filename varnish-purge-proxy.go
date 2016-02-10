@@ -52,7 +52,7 @@ type config struct {
 }
 
 func main() {
-	kingpin.Version("1.2.2")
+	kingpin.Version("2.0.0")
 	kingpin.Parse()
 
 	sl, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_LOCAL0, "[varnish-purge-proxy]")
