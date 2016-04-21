@@ -39,8 +39,9 @@ var (
 	port            = kingpin.Flag("port", "Port to listen on.").Default("8000").Int()
 	cache           = kingpin.Flag("cache", "Time in seconds to cache instance IP lookup.").Default("60").Int()
 	destport        = kingpin.Flag("destport", "The destination port of the varnish server to target.").Default("80").Int()
-	listen          = kingpin.Flag("listen", "host address to listen on, defaults to 127.0.0.1").Default("127.0.0.1").String()
+	listen          = kingpin.Flag("listen", "Host address to listen on, defaults to 127.0.0.1").Default("127.0.0.1").String()
 	tags            = kingpin.Arg("tag", "Key:value pair of tags to match EC2 instances.").Strings()
+	debug           = kingpin.Flag("debug", "Log additional debug messages.").Bool()
 	region          string
 	resetAfter      time.Time
 	taggedInstances = []string{}
@@ -52,7 +53,7 @@ type config struct {
 }
 
 func main() {
-	kingpin.Version("2.0.0")
+	kingpin.Version("2.0.1")
 	kingpin.Parse()
 
 	sl, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_LOCAL0, "[varnish-purge-proxy]")
@@ -86,6 +87,9 @@ func timeoutDialer(config *config) func(net, addr string) (c net.Conn, err error
 	return func(netw, addr string) (net.Conn, error) {
 		conn, err := net.DialTimeout(netw, addr, config.ConnectTimeout)
 		if err != nil {
+			if *debug {
+				log.Printf("Error in timeoutDialer: %s\n", err)
+			}
 			return nil, err
 		}
 		conn.SetDeadline(time.Now().Add(config.ReadWriteTimeout))
@@ -144,6 +148,9 @@ func serveHTTP(port int, host string, ec2region *ec2.EC2) {
 func requestHandler(w http.ResponseWriter, r *http.Request, client *http.Client, ec2region *ec2.EC2) {
 	// check that request is PURGE and has X-Purge-Regex header set
 	if _, exists := r.Header["X-Purge-Regex"]; !exists || r.Method != "PURGE" {
+		if *debug {
+			log.Printf("Error invalid request: %s, %s\n", r.Header, r.Method)
+		}
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
@@ -206,11 +213,16 @@ func getPrivateIPs(ec2region *ec2.EC2) []string {
 
 	request := ec2.DescribeInstancesInput{Filters: filters}
 	result, err := ec2region.DescribeInstances(&request)
+	if err != nil {
+		log.Println(err)
+	}
 
 	for _, reservation := range result.Reservations {
 		for _, instance := range reservation.Instances {
 			if instance.PrivateIpAddress != nil {
-				log.Println(*instance.PrivateIpAddress)
+				if *debug {
+					log.Printf("Adding %s to IP list\n", *instance.PrivateIpAddress)
+				}
 				instances = append(instances, *instance.PrivateIpAddress)
 			}
 		}
@@ -243,12 +255,20 @@ func forwardRequest(r *http.Request, ip string, destport int, client http.Client
 
 	newURL, err := url.Parse(fmt.Sprintf("http://%v:%d%v", ip, destport, requesturl))
 	if err != nil {
+		log.Printf("Error parsing URL: %s\n", err)
+		if *debug {
+			log.Printf("For URL: %s\n", fmt.Sprintf("http://%v:%d%v", ip, destport, requesturl))
+		}
 		responseChannel <- 500
 		return
 	}
 	r.URL = newURL
 	response, err := client.Do(r)
 	if err != nil {
+		log.Printf("Error sending request: %s\n", err)
+		if *debug {
+			log.Printf("For URL: %s\n", r.URL)
+		}
 		responseChannel <- 500
 		return
 	}
