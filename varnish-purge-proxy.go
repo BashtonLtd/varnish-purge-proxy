@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -53,7 +54,7 @@ type config struct {
 }
 
 func main() {
-	kingpin.Version("2.0.1")
+	kingpin.Version("2.1.0")
 	kingpin.Parse()
 
 	sl, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_LOCAL0, "[varnish-purge-proxy]")
@@ -165,43 +166,54 @@ func requestHandler(w http.ResponseWriter, r *http.Request, client *http.Client,
 
 	log.Printf("Sending PURGE to: %+v", privateIPs)
 	// start gorountine for each server
-	responseChannel := make(chan int)
+	responseChannel := make(chan int, len(privateIPs))
 	requesturl := fmt.Sprintf("%v", r.URL)
+
+	var wg sync.WaitGroup
+	wg.Add(len(privateIPs))
+
 	for _, ip := range privateIPs {
-		go forwardRequest(r, ip, *destport, *client, requesturl, responseChannel)
-	}
-
-	return500 := getResponses(len(privateIPs), responseChannel)
-
-	// send response to client
-	if return500 == true {
-		http.Error(w, http.StatusText(500), 500)
-	}
-	return
-}
-
-func getResponses(IPCount int, responseChannel chan int) bool {
-	// gather responses from all requests
-	timeout := time.After(30 * time.Second)
-	return500 := false
-	responsesReceived := 0
-
-	for {
-		select {
-		case response := <-responseChannel:
-			responsesReceived++
-			if response == 500 {
-				return500 = true
+		req, err := copyRequest(r)
+		if err != nil {
+			wg.Add(-1)
+			if *debug {
+				log.Println("Failed to copy request.")
 			}
-			if responsesReceived == IPCount {
-				return return500
-			}
-
-		case <-timeout:
-			return500 = true
-			return return500
+		} else {
+			go forwardRequest(req, ip, *destport, *client, requesturl, responseChannel, &wg)
 		}
 	}
+
+	wg.Wait()
+
+	select {
+	case _, ok := <-responseChannel:
+		if ok {
+			// Response channel contains at least one error
+			http.Error(w, http.StatusText(500), 500)
+		} else {
+			// Channel has been closed
+			http.Error(w, http.StatusText(500), 500)
+		}
+	default:
+		return
+	}
+}
+
+func copyRequest(src *http.Request) (*http.Request, error) {
+	req, err := http.NewRequest(src.Method, src.URL.String(), src.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, vs := range src.Header {
+		req.Header[k] = make([]string, len(vs))
+		copy(req.Header[k], vs)
+	}
+	if host := req.Header.Get("Host"); host != "" {
+		req.Host = host
+	}
+	return req, nil
 }
 
 func getPrivateIPs(ec2region *ec2.EC2) []string {
@@ -249,7 +261,8 @@ func buildFilter(tags []string) ([]*ec2.Filter, error) {
 
 }
 
-func forwardRequest(r *http.Request, ip string, destport int, client http.Client, requesturl string, responseChannel chan int) {
+func forwardRequest(r *http.Request, ip string, destport int, client http.Client, requesturl string, responseChannel chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
 	r.Host = ip
 	r.RequestURI = ""
 
@@ -273,6 +286,5 @@ func forwardRequest(r *http.Request, ip string, destport int, client http.Client
 		return
 	}
 	defer response.Body.Close()
-	responseChannel <- response.StatusCode
 	return
 }

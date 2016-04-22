@@ -8,12 +8,13 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"sync"
 	"testing"
 )
 
-func expect(t *testing.T, a interface{}, b interface{}) {
+func expect(t *testing.T, k string, a interface{}, b interface{}) {
 	if a != b {
-		t.Fatalf("Expected %v (type %v) - Got %v (type %v)", b, reflect.TypeOf(b), a, reflect.TypeOf(a))
+		t.Fatalf("%s: Expected %v (type %v) - Got %v (type %v)", k, b, reflect.TypeOf(b), a, reflect.TypeOf(a))
 	}
 }
 
@@ -34,77 +35,59 @@ func TestForwardRequest(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	// build request
-	request, err := http.NewRequest("GET", "http://127.0.0.1", nil)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	client := newTimeoutClient()
-	channel := make(chan int, 10)
-
-	forwardRequest(request, host, port, *client, "/", channel)
-	statusCode := <-channel
-	expect(t, statusCode, 200)
-}
-
-func TestForwardRequestBrokenURL(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
-		fmt.Fprintln(w, "")
-	}))
-	defer server.Close()
-
-	u, err := url.Parse(server.URL)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	host, strport, _ := net.SplitHostPort(u.Host)
-	port, err := strconv.Atoi(strport)
-	if err != nil {
-		t.Fatalf(err.Error())
+	cases := map[string]struct {
+		url      string
+		host     string
+		port     int
+		expected bool
+	}{
+		"success":    {"/", host, port, false},
+		"brokenurl":  {"/%", host, port, true},
+		"noresponse": {"/", host, 1234, true},
 	}
 
-	// build request
-	request, err := http.NewRequest("GET", "http://127.0.0.1", nil)
-	if err != nil {
-		t.Fatalf(err.Error())
+	for k, tc := range cases {
+		// build request
+		request, err := http.NewRequest("GET", "http://127.0.0.1", nil)
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		client := newTimeoutClient()
+		channel := make(chan int, 10)
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+		forwardRequest(request, host, tc.port, *client, tc.url, channel, &wg)
+		errored := false
+		select {
+		case _, ok := <-channel:
+			if ok {
+				errored = true
+			} else {
+				errored = true
+			}
+		default:
+			errored = false
+		}
+		expect(t, k, errored, tc.expected)
 	}
-	client := newTimeoutClient()
-	channel := make(chan int, 10)
 
-	forwardRequest(request, host, port, *client, "/%", channel)
-	statusCode := <-channel
-	expect(t, statusCode, 500)
-}
-
-func TestForwardRequestNoResponse(t *testing.T) {
-	// build request
-	request, err := http.NewRequest("GET", "http://127.0.0.1", nil)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	client := newTimeoutClient()
-	channel := make(chan int, 10)
-
-	forwardRequest(request, "127.0.0.1", 1234, *client, "/", channel)
-	statusCode := <-channel
-	expect(t, statusCode, 500)
 }
 
 func TestBuildFilter(t *testing.T) {
 	testTags := []string{"machinetype:varnish", "env:stage"}
 	filter, err := buildFilter(testTags)
-	expect(t, err, nil)
-	expect(t, *filter[0].Name, "tag:machinetype")
+	expect(t, "buildfilter", err, nil)
+	expect(t, "buildfilter", *filter[0].Name, "tag:machinetype")
 	value0 := filter[0].Values[0]
-	expect(t, *value0, "varnish")
-	expect(t, *filter[1].Name, "tag:env")
+	expect(t, "buildfilter", *value0, "varnish")
+	expect(t, "buildfilter", *filter[1].Name, "tag:env")
 	value1 := filter[1].Values[0]
-	expect(t, *value1, "stage")
+	expect(t, "buildfilter", *value1, "stage")
 }
 
 func TestBuildFilterInvalid(t *testing.T) {
 	testTags := []string{"machinetypevarnish", "env:stage"}
 	_, err := buildFilter(testTags)
-	expect(t, err.Error(), "expected TAG:VALUE got machinetypevarnish")
+	expect(t, "buildfilterinvalid", err.Error(), "expected TAG:VALUE got machinetypevarnish")
 }
