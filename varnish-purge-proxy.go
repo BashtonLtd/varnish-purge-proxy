@@ -20,6 +20,8 @@ package main
  */
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"log/syslog"
 	"net/http"
@@ -247,6 +249,7 @@ func forwardRequest(r *http.Request, ip string, destport int, client http.Client
 		responseChannel <- 500
 		return
 	}
+	io.Copy(ioutil.Discard, response.Body)
 	defer response.Body.Close()
 	return
 }
