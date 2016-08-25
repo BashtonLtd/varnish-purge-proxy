@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 )
 
 func expect(t *testing.T, k string, a interface{}, b interface{}) {
@@ -52,12 +53,15 @@ func TestForwardRequest(t *testing.T) {
 		if err != nil {
 			t.Fatalf(err.Error())
 		}
-		client := newTimeoutClient()
+		timeout := time.Duration(5 * time.Second)
+		client := http.Client{
+			Timeout: timeout,
+		}
 		channel := make(chan int, 10)
 
 		var wg sync.WaitGroup
 		wg.Add(1)
-		forwardRequest(request, host, tc.port, *client, tc.url, channel, &wg)
+		forwardRequest(request, host, tc.port, client, tc.url, channel, &wg)
 		errored := false
 		select {
 		case _, ok := <-channel:

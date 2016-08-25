@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"log"
 	"log/syslog"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -84,52 +83,15 @@ func main() {
 	select {}
 }
 
-func timeoutDialer(config *config) func(net, addr string) (c net.Conn, err error) {
-	return func(netw, addr string) (net.Conn, error) {
-		conn, err := net.DialTimeout(netw, addr, config.ConnectTimeout)
-		if err != nil {
-			if *debug {
-				log.Printf("Error in timeoutDialer: %s\n", err)
-			}
-			return nil, err
-		}
-		conn.SetDeadline(time.Now().Add(config.ReadWriteTimeout))
-		return conn, nil
-	}
-}
-
-func newTimeoutClient(args ...interface{}) *http.Client {
-	// Default configuration
-	config := &config{
-		ConnectTimeout:   5 * time.Second,
-		ReadWriteTimeout: 5 * time.Second,
-	}
-
-	// merge the default with user input if there is one
-	if len(args) == 1 {
-		timeout := args[0].(time.Duration)
-		config.ConnectTimeout = timeout
-		config.ReadWriteTimeout = timeout
-	}
-
-	if len(args) == 2 {
-		config.ConnectTimeout = args[0].(time.Duration)
-		config.ReadWriteTimeout = args[1].(time.Duration)
-	}
-
-	return &http.Client{
-		Transport: &http.Transport{
-			Dial: timeoutDialer(config),
-		},
-	}
-}
-
 func serveHTTP(port int, host string, ec2region *ec2.EC2) {
-	client := newTimeoutClient()
+	timeout := time.Duration(5 * time.Second)
+	client := http.Client{
+		Timeout: timeout,
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		requestHandler(w, r, client, ec2region)
+		requestHandler(w, r, &client, ec2region)
 	})
 
 	addr := fmt.Sprintf("%v:%d", host, port)
