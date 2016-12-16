@@ -1,13 +1,11 @@
 varnish-purge-proxy
 ===================
 
-[![Build Status](https://travis-ci.org/BashtonLtd/varnish-purge-proxy.svg?branch=master)](https://travis-ci.org/BashtonLtd/varnish-purge-proxy)
-
 Proxy purge requests to multiple varnish servers
 
-Specify tags to limit instances that receive the purge request, multiple tags can be used. You must specify at least one tag.
+You must specify the following options:
 
-`./varnish-purge-proxy Service:varnish Environment:live`
+`./varnish-purge-proxy --region=europe-west1 --project=my-google-project --credentials=/path/to/credentials.json`
 
 You can also specify host and port to listen on:
 
@@ -24,7 +22,7 @@ varnish-purge-proxy will cache the IP lookup for 60 seconds, you can change this
 Authentication
 --------------
 
-AWS access key and secret key can be added as environment variables, using either `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY`.  If these are not available then IAM credentials for the instance will be checked.
+A service account needs to be created in Google that has at least "Compute Network Viewer".
 
 Building
 --------
