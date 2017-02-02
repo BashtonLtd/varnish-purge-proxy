@@ -9,3 +9,10 @@ import:
   - service/ec2
 - package: gopkg.in/alecthomas/kingpin.v1
   version: ^2.2.3
+- package: cloud.google.com/go
+  version: ^0.6.0
+  subpackages:
+  - compute/
+- package: google.golang.org/api
+  subpackages:
+  - compute
