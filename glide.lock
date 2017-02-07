@@ -1,5 +1,5 @@
-hash: 401890d1bab3de66c2a983d727d62dca56f7799e25493cec7d742b65502b270f
-updated: 2017-02-02T10:01:13.417388193Z
+hash: 5ab31d2954408d21da485160ea3213b37b5a8fac42a78f7e2171bff41cb57613
+updated: 2017-02-07T13:51:20.131874045Z
 imports:
 - name: cloud.google.com/go
   version: c116c7972ec94f148459a304d07a67ecbc770d4b
@@ -52,7 +52,7 @@ imports:
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: golang.org/x/net
-  version: 007e530097ad7f954752df63046b4036f98ba6a6
+  version: 236b8f043b920452504e263bc21d354427127473
   subpackages:
   - context
   - context/ctxhttp
@@ -70,7 +70,7 @@ imports:
   - jws
   - jwt
 - name: google.golang.org/api
-  version: dfa61ae24628a06502b9c2805d983b57e89399b5
+  version: 3d017632ea100549bbb3ae74c567d59f437ece0f
   subpackages:
   - compute
   - compute/v1
@@ -78,7 +78,7 @@ imports:
   - googleapi
   - googleapi/internal/uritemplates
 - name: google.golang.org/appengine
-  version: a2c54d2174c17540446e0ced57d9d459af61bc1c
+  version: 2e4a801b39fc199db615bfca7d0b9f8cd9580599
   subpackages:
   - internal
   - internal/app_identity
