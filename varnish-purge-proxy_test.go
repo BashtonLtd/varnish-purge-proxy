@@ -77,21 +77,3 @@ func TestForwardRequest(t *testing.T) {
 	}
 
 }
-
-func TestBuildFilter(t *testing.T) {
-	testTags := []string{"machinetype:varnish", "env:stage"}
-	filter, err := buildFilter(testTags)
-	expect(t, "buildfilter", err, nil)
-	expect(t, "buildfilter", *filter[0].Name, "tag:machinetype")
-	value0 := filter[0].Values[0]
-	expect(t, "buildfilter", *value0, "varnish")
-	expect(t, "buildfilter", *filter[1].Name, "tag:env")
-	value1 := filter[1].Values[0]
-	expect(t, "buildfilter", *value1, "stage")
-}
-
-func TestBuildFilterInvalid(t *testing.T) {
-	testTags := []string{"machinetypevarnish", "env:stage"}
-	_, err := buildFilter(testTags)
-	expect(t, "buildfilterinvalid", err.Error(), "expected TAG:VALUE got machinetypevarnish")
-}

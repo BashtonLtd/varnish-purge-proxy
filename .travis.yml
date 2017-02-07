@@ -1,6 +1,17 @@
+sudo: required
+
 language: go
+
 go:
- - 1.5
- - 1.6
- - 1.7
- - tip
+  - 1.7.x
+  - tip
+
+services:
+  - docker
+
+install:
+  - go get github.com/Masterminds/glide
+
+script:
+  - glide install
+  - go test $(glide nv -x)
