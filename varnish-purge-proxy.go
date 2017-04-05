@@ -192,15 +192,13 @@ func copyRequest(src *http.Request) (*http.Request, error) {
 		req.Header[k] = make([]string, len(vs))
 		copy(req.Header[k], vs)
 	}
-	if host := req.Header.Get("Host"); host != "" {
-		req.Host = host
-	}
+	req.Header.Set("Host", src.Host)
 	return req, nil
 }
 
 func forwardRequest(r *http.Request, ip string, destport int, client http.Client, requesturl string, responseChannel chan int, wg *sync.WaitGroup) {
 	defer wg.Done()
-	r.Host = ip
+	r.Host = r.Header.Get("Host")
 	r.RequestURI = ""
 
 	newURL, err := url.Parse(fmt.Sprintf("http://%v:%d%v", ip, destport, requesturl))
