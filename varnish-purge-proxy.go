@@ -61,7 +61,7 @@ var (
 )
 
 func main() {
-	kingpin.Version("3.0.0")
+	kingpin.Version("3.0.1")
 
 	// Log to syslog
 	sl, err := syslog.New(syslog.LOG_NOTICE|syslog.LOG_LOCAL0, "[varnish-purge-proxy]")
