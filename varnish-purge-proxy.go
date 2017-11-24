@@ -130,7 +130,7 @@ func serveHTTP(port int, host string, service providers.Service) {
 
 func requestHandler(w http.ResponseWriter, r *http.Request, client *http.Client, service providers.Service) {
 	// check that request is PURGE and has X-Purge-Regex header set
-	if _, exists := r.Header["X-Purge-Regex"]; !exists || r.Method != "PURGE" {
+	if valid, _ := validateRequest(r); !valid {
 		if *debug {
 			log.Printf("Error invalid request: %s, %s\n", r.Header, r.Method)
 		}
@@ -180,6 +180,18 @@ func requestHandler(w http.ResponseWriter, r *http.Request, client *http.Client,
 	default:
 		return
 	}
+}
+
+func validateRequest(r *http.Request) (bool, string) {
+	// check that request is PURGE
+	if r.Method != "PURGE" {
+		return false, "Invalid method: " + r.Method
+	}
+	// check that request has the X-Purge-Regex header set
+	if _, exists := r.Header["X-Purge-Regex"]; !exists {
+		return false, "Missing required header"
+	}
+	return true, "Valid"
 }
 
 func copyRequest(src *http.Request) (*http.Request, error) {

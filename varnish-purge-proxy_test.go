@@ -86,3 +86,29 @@ func TestCopyRequest(t *testing.T) {
 	expect(t, "host is copied", dup.Host, req.Host)
 	expect(t, "header is copied", dup.Header.Get("X-Foo"), req.Header.Get("X-Foo"))
 }
+
+func TestValidateRequest(t *testing.T) {
+	cases := map[string]struct {
+		method   string
+		header   string
+		expected bool
+		message  string
+	}{
+		"badmethod": {"GET", "", false, "Invalid method: GET"},
+		"noheader":  {"PURGE", "", false, "Missing required header"},
+		"good":      {"PURGE", "X-Purge-Regex", true, "Valid"},
+	}
+
+	for k, tc := range cases {
+		req, err := http.NewRequest(tc.method, "http://example.com/", nil)
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		if tc.header != "" {
+			req.Header.Set(tc.header, "foo")
+		}
+		valid, msg := validateRequest(req)
+		expect(t, k, valid, tc.expected)
+		expect(t, k, msg, tc.message)
+	}
+}
