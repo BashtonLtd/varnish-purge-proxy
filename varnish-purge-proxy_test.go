@@ -77,3 +77,12 @@ func TestForwardRequest(t *testing.T) {
 	}
 
 }
+
+func TestCopyRequest(t *testing.T) {
+	req, _ := http.NewRequest("GET", "http://example.com/", nil)
+	req.Header.Set("X-Foo", "")
+
+	dup, _ := copyRequest(req)
+	expect(t, "host is copied", dup.Host, req.Host)
+	expect(t, "header is copied", dup.Header.Get("X-Foo"), req.Header.Get("X-Foo"))
+}
