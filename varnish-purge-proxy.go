@@ -42,6 +42,7 @@ var (
 	destport = app.Flag("destport", "The destination port of the varnish server to target.").Default("80").Int()
 	listen   = app.Flag("listen", "Host address to listen on, defaults to 127.0.0.1").Default("127.0.0.1").String()
 	port     = app.Flag("port", "Port to listen on.").Default("8000").Int()
+	header   = app.Flag("header", "HTTP header to require").Default("X-Purge-Regex").String()
 
 	// AWS service args
 	awsService = app.Command("aws", "Use AWS service.")
@@ -188,8 +189,8 @@ func validateRequest(r *http.Request) (bool, string) {
 		return false, "Invalid method: " + r.Method
 	}
 	// check that request has the X-Purge-Regex header set
-	if _, exists := r.Header["X-Purge-Regex"]; !exists {
-		return false, "Missing required header"
+	if _, exists := r.Header[*header]; !exists {
+		return false, "Missing required header: " + *header
 	}
 	return true, "Valid"
 }

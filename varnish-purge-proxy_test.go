@@ -87,28 +87,31 @@ func TestCopyRequest(t *testing.T) {
 	expect(t, "header is copied", dup.Header.Get("X-Foo"), req.Header.Get("X-Foo"))
 }
 
-func TestValidateRequest(t *testing.T) {
-	cases := map[string]struct {
-		method   string
-		header   string
-		expected bool
-		message  string
-	}{
-		"badmethod": {"GET", "", false, "Invalid method: GET"},
-		"noheader":  {"PURGE", "", false, "Missing required header"},
-		"good":      {"PURGE", "X-Purge-Regex", true, "Valid"},
-	}
+func TestValidateRequestBadMethod(t *testing.T) {
+	req, _ := http.NewRequest("GET", "http://example.com/", nil)
+	_, msg := validateRequest(req)
+	expect(t, "validateWrongMethod", msg, "Invalid method: GET")
+}
 
-	for k, tc := range cases {
-		req, err := http.NewRequest(tc.method, "http://example.com/", nil)
-		if err != nil {
-			t.Fatalf(err.Error())
-		}
-		if tc.header != "" {
-			req.Header.Set(tc.header, "foo")
-		}
-		valid, msg := validateRequest(req)
-		expect(t, k, valid, tc.expected)
-		expect(t, k, msg, tc.message)
-	}
+func TestValidateRequestMissingHeader(t *testing.T) {
+	*header = "X-Purge-Regex"
+	req, _ := http.NewRequest("PURGE", "http://example.com/", nil)
+	_, msg := validateRequest(req)
+	expect(t, "validateMissingHeader", msg, "Missing required header: X-Purge-Regex")
+}
+
+func TestValidateRequestCorrect(t *testing.T) {
+	*header = "X-Purge-Regex"
+	req, _ := http.NewRequest("PURGE", "http://example.com/", nil)
+	req.Header.Set(*header, "foo")
+	valid, _ := validateRequest(req)
+	expect(t, "validateDefaultHeader", valid, true)
+}
+
+func TestValidateRequestMagento2(t *testing.T) {
+	*header = "X-Magento-Tags-Pattern"
+	req, _ := http.NewRequest("PURGE", "http://example.com/", nil)
+	req.Header.Set(*header, "foo")
+	valid, _ := validateRequest(req)
+	expect(t, "validateCustomHeader", valid, true)
 }
