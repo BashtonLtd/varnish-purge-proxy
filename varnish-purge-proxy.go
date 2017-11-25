@@ -42,7 +42,6 @@ var (
 	destport = app.Flag("destport", "The destination port of the varnish server to target.").Default("80").Int()
 	listen   = app.Flag("listen", "Host address to listen on, defaults to 127.0.0.1").Default("127.0.0.1").String()
 	port     = app.Flag("port", "Port to listen on.").Default("8000").Int()
-	header   = app.Flag("header", "HTTP header to require").Default("X-Purge-Regex").String()
 
 	// AWS service args
 	awsService = app.Command("aws", "Use AWS service.")
@@ -130,7 +129,7 @@ func serveHTTP(port int, host string, service providers.Service) {
 }
 
 func requestHandler(w http.ResponseWriter, r *http.Request, client *http.Client, service providers.Service) {
-	// check that request is PURGE and has X-Purge-Regex header set
+	// only handle PURGE requests with a purge header set
 	if valid, _ := validateRequest(r); !valid {
 		if *debug {
 			log.Printf("Error invalid request: %s, %s\n", r.Header, r.Method)
@@ -188,9 +187,19 @@ func validateRequest(r *http.Request) (bool, string) {
 	if r.Method != "PURGE" {
 		return false, "Invalid method: " + r.Method
 	}
-	// check that request has the X-Purge-Regex header set
-	if _, exists := r.Header[*header]; !exists {
-		return false, "Missing required header: " + *header
+	// ensure request has at least one purge header set
+	headers_seen := 0
+	purge_headers := [...]string{
+		"X-Purge-Regex",
+		"X-Magento-Tags-Pattern",
+	}
+	for _, h := range purge_headers {
+		if _, exists := r.Header[h]; exists {
+			headers_seen++
+		}
+	}
+	if headers_seen == 0 {
+		return false, "Request contains no purge headers"
 	}
 	return true, "Valid"
 }

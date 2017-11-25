@@ -94,24 +94,21 @@ func TestValidateRequestBadMethod(t *testing.T) {
 }
 
 func TestValidateRequestMissingHeader(t *testing.T) {
-	*header = "X-Purge-Regex"
 	req, _ := http.NewRequest("PURGE", "http://example.com/", nil)
 	_, msg := validateRequest(req)
-	expect(t, "validateMissingHeader", msg, "Missing required header: X-Purge-Regex")
+	expect(t, "validateMissingHeader", msg, "Request contains no purge headers")
 }
 
-func TestValidateRequestCorrect(t *testing.T) {
-	*header = "X-Purge-Regex"
+func TestValidateRequestCorrectPhoenix(t *testing.T) {
 	req, _ := http.NewRequest("PURGE", "http://example.com/", nil)
-	req.Header.Set(*header, "foo")
+	req.Header.Set("X-Purge-Regex", "foo")
 	valid, _ := validateRequest(req)
 	expect(t, "validateDefaultHeader", valid, true)
 }
 
-func TestValidateRequestMagento2(t *testing.T) {
-	*header = "X-Magento-Tags-Pattern"
+func TestValidateRequestCorrectMagento2(t *testing.T) {
 	req, _ := http.NewRequest("PURGE", "http://example.com/", nil)
-	req.Header.Set(*header, "foo")
+	req.Header.Set("X-Magento-Tags-Pattern", "foo")
 	valid, _ := validateRequest(req)
 	expect(t, "validateCustomHeader", valid, true)
 }
