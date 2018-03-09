@@ -129,8 +129,8 @@ func serveHTTP(port int, host string, service providers.Service) {
 }
 
 func requestHandler(w http.ResponseWriter, r *http.Request, client *http.Client, service providers.Service) {
-	// check that request is PURGE and has X-Purge-Regex header set
-	if _, exists := r.Header["X-Purge-Regex"]; !exists || r.Method != "PURGE" {
+	// only handle PURGE requests with a purge header set
+	if valid, _ := validateRequest(r); !valid {
 		if *debug {
 			log.Printf("Error invalid request: %s, %s\n", r.Header, r.Method)
 		}
@@ -180,6 +180,28 @@ func requestHandler(w http.ResponseWriter, r *http.Request, client *http.Client,
 	default:
 		return
 	}
+}
+
+func validateRequest(r *http.Request) (bool, string) {
+	// check that request is PURGE
+	if r.Method != "PURGE" {
+		return false, "Invalid method: " + r.Method
+	}
+	// ensure request has at least one purge header set
+	headers_seen := 0
+	purge_headers := [...]string{
+		"X-Purge-Regex",
+		"X-Magento-Tags-Pattern",
+	}
+	for _, h := range purge_headers {
+		if _, exists := r.Header[h]; exists {
+			headers_seen++
+		}
+	}
+	if headers_seen == 0 {
+		return false, "Request contains no purge headers"
+	}
+	return true, "Valid"
 }
 
 func copyRequest(src *http.Request) (*http.Request, error) {
